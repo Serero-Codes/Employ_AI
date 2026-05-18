@@ -1,0 +1,13 @@
+flask
+flask-cors
+pandas
+numpy
+scikit-learn
+spacy
+flask
+flask-cors
+groq
+python-dotenv
+pandas
+spacy
+os

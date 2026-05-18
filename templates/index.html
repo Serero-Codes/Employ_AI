@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .hero-section {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 120px 40px 80px;
+        text-align: center;
+        position: relative;
+    }
+
+    .hero-eyebrow {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        color: var(--acid);
+        margin-bottom: 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-transform: uppercase;
+    }
+    .eyebrow-line { width: 40px; height: 1px; background: var(--acid); opacity: 0.6; }
+
+    .hero-title {
+        font-size: clamp(3.5rem, 8vw, 7rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.95;
+        margin-bottom: 32px;
+        max-width: 900px;
+    }
+    .hero-title .line2 {
+        display: block;
+        background: linear-gradient(135deg, var(--acid) 0%, var(--plasma) 60%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-sub {
+        font-size: 1.05rem;
+        color: #5a5a7a;
+        max-width: 520px;
+        line-height: 1.7;
+        margin-bottom: 56px;
+        font-weight: 300;
+    }
+
+    .hero-cta {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 100px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    /* Ticker */
+    .ticker-wrap {
+        width: 100%;
+        overflow: hidden;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 12px 0;
+        margin-bottom: 80px;
+    }
+    .ticker {
+        display: flex;
+        gap: 60px;
+        animation: ticker 30s linear infinite;
+        white-space: nowrap;
+        width: fit-content;
+    }
+    .ticker-item {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: 0.05em;
+    }
+    .ticker-item .up { color: var(--acid); }
+    .ticker-item .down { color: #ff4d6d; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* Stats row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        max-width: 700px;
+        margin: 0 auto 100px;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .stats-row > div {
+        padding: 28px 24px;
+        text-align: center;
+        background: rgba(255,255,255,0.02);
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .stats-row > div:last-child { border-right: none; }
+    .stat-num {
+        font-family: 'Syne', sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--acid);
+        display: block;
+        margin-bottom: 4px;
+    }
+    .stat-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    /* Feature cards */
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        max-width: 1100px;
+        margin: 0 auto;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .feature-card {
+        padding: 48px 36px;
+        background: #080810;
+        position: relative;
+        overflow: hidden;
+        transition: background 0.3s ease;
+    }
+    .feature-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--acid), transparent);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+    .feature-card:hover { background: rgba(184,255,53,0.02); }
+    .feature-card:hover::after { transform: scaleX(1); }
+    .feature-num {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: rgba(184,255,53,0.3);
+        letter-spacing: 0.15em;
+        margin-bottom: 24px;
+        display: block;
+    }
+    .feature-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #e8e8f0;
+    }
+    .feature-desc {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        line-height: 1.7;
+        font-weight: 300;
+    }
+    .feature-icon {
+        width: 40px; height: 40px;
+        margin-bottom: 20px;
+        color: var(--acid);
+        opacity: 0.7;
+    }
+
+    /* Terminal preview */
+    .terminal-preview {
+        max-width: 640px;
+        margin: 0 auto 100px;
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .terminal-bar {
+        padding: 12px 16px;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .t-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-body {
+        padding: 20px 24px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.72rem;
+        line-height: 2;
+        color: #4a4a6a;
+    }
+    .t-green { color: var(--acid); }
+    .t-cyan { color: var(--plasma); }
+    .t-white { color: #c8c8d8; }
+    .t-dim { color: #3a3a5a; }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    /* Footer */
+    footer {
+        border-top: 1px solid rgba(255,255,255,0.05);
+        padding: 40px;
+        text-align: center;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        margin-top: 80px;
+    }
+</style>
+
+<div class="hero-section">
+    <!-- Ambient background orbs -->
+    <div style="position:absolute;top:20%;left:10%;width:400px;height:400px;background:radial-gradient(circle,rgba(184,255,53,0.06),transparent 70%);pointer-events:none;animation:floatOrb 8s ease-in-out infinite;"></div>
+    <div style="position:absolute;bottom:20%;right:5%;width:500px;height:500px;background:radial-gradient(circle,rgba(0,245,212,0.05),transparent 70%);pointer-events:none;animation:floatOrb 11s ease-in-out infinite reverse;"></div>
+    <style>@keyframes floatOrb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.05)}}</style>
+
+    <div class="hero-eyebrow">
+        <span class="eyebrow-line"></span>
+        Quantum Career Intelligence Platform v2.0
+        <span class="eyebrow-line"></span>
+    </div>
+
+    <h1 class="hero-title">
+        Know Your<br>
+        <span class="line2">Market Value.</span>
+    </h1>
+
+    <p class="hero-sub">
+        Real-time employability scoring, skill gap analysis, and regional demand mapping — synthesized by AI for the South African labour market.
+    </p>
+
+    <div class="hero-cta">
+        <a href="/analyze"><button class="btn-primary">→ Run Deep Analysis</button></a>
+        <a href="#features"><button class="btn-ghost">View Capabilities</button></a>
+    </div>
+</div>
+
+<!-- Ticker tape -->
+<div class="ticker-wrap">
+    <div class="ticker" id="ticker">
+        <div class="ticker-item"><span>GAUTENG TECH DEMAND</span><span class="up">↑ 22%</span></div>
+        <div class="ticker-item"><span>PYTHON DEVELOPERS</span><span class="up">+1,240 LISTINGS</span></div>
+        <div class="ticker-item"><span>CAPE TOWN FINTECH</span><span class="up">↑ 18%</span></div>
+        <div class="ticker-item"><span>SA UNEMPLOYMENT</span><span class="down">32.1%</span></div>
+        <div class="ticker-item"><span>CLOUD CERTIFICATIONS</span><span class="up">+34% VALUE</span></div>
+        <div class="ticker-item"><span>DATA SCIENCE NQF7</span><span class="up">R650K AVG</span></div>
+        <div class="ticker-item"><span>KZN MANUFACTURING</span><span class="down">↓ 5%</span></div>
+        <div class="ticker-item"><span>AI/ML ROLES</span><span class="up">↑ 89% YOY</span></div>
+        <div class="ticker-item"><span>CYBERSECURITY</span><span class="up">+890 VACANCIES</span></div>
+        <div class="ticker-item"><span>REMOTE WORK SA</span><span class="up">↑ 41%</span></div>
+        <!-- duplicate for seamless loop -->
+        <div class="ticker-item"><span>GAUTENG TECH DEMAND</span><span class="up">↑ 22%</span></div>
+        <div class="ticker-item"><span>PYTHON DEVELOPERS</span><span class="up">+1,240 LISTINGS</span></div>
+        <div class="ticker-item"><span>CAPE TOWN FINTECH</span><span class="up">↑ 18%</span></div>
+        <div class="ticker-item"><span>SA UNEMPLOYMENT</span><span class="down">32.1%</span></div>
+        <div class="ticker-item"><span>CLOUD CERTIFICATIONS</span><span class="up">+34% VALUE</span></div>
+        <div class="ticker-item"><span>DATA SCIENCE NQF7</span><span class="up">R650K AVG</span></div>
+        <div class="ticker-item"><span>KZN MANUFACTURING</span><span class="down">↓ 5%</span></div>
+        <div class="ticker-item"><span>AI/ML ROLES</span><span class="up">↑ 89% YOY</span></div>
+        <div class="ticker-item"><span>CYBERSECURITY</span><span class="up">+890 VACANCIES</span></div>
+        <div class="ticker-item"><span>REMOTE WORK SA</span><span class="up">↑ 41%</span></div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div><span class="stat-num" data-count="94">0</span><span class="stat-label">Accuracy Rate</span></div>
+    <div><span class="stat-num" data-count="12400">0</span><span class="stat-label">Profiles Analyzed</span></div>
+    <div><span class="stat-num" data-count="9">0</span><span class="stat-label">Provinces Covered</span></div>
+</div>
+
+<!-- Terminal preview -->
+<div class="terminal-preview">
+    <div class="terminal-bar">
+        <div class="t-dot" style="background:#ff5f57"></div>
+        <div class="t-dot" style="background:#febc2e"></div>
+        <div class="t-dot" style="background:#28c840"></div>
+        <span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:#3a3a5a;margin-left:8px;">employai_engine.py</span>
+    </div>
+    <div class="terminal-body" id="terminalText">
+        <div><span class="t-dim">$</span> <span class="t-green">python</span> <span class="t-white">analyze.py --profile user_input.json</span></div>
+        <div><span class="t-dim">→ Loading market dataset...</span></div>
+        <div><span class="t-dim">→ Cross-referencing 9 provincial databases...</span></div>
+        <div><span class="t-cyan">→ Employability matrix computed.</span></div>
+        <div><span class="t-dim">→ Salary benchmarks: </span><span class="t-green">R420,000 – R680,000</span></div>
+        <div><span class="t-dim">→ Skills gap identified: </span><span class="t-white">3 critical, 2 recommended</span></div>
+        <div><span class="t-green">✓ Analysis complete.</span> <span class="t-dim">Score: </span><span class="t-cyan">78/100</span><span class="cursor-blink t-green">█</span></div>
+    </div>
+</div>
+
+<!-- Features -->
+<div id="features" style="max-width:1100px;margin:0 auto 60px;padding:0 40px;">
+    <div style="text-align:center;margin-bottom:60px;">
+        <span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--acid);letter-spacing:0.2em;text-transform:uppercase;">Platform Capabilities</span>
+        <h2 style="font-size:2.5rem;font-weight:800;margin-top:16px;letter-spacing:-0.03em;">Precision Career Intelligence</h2>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="feature-num">01 — ANALYSIS</span>
+            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <div class="feature-title">Real-Time Synthesis</div>
+            <p class="feature-desc">Live market benchmarks crawled across South African job boards, reconciled against NQF frameworks and sector-specific demand signals.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-num">02 — MAPPING</span>
+            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+            <div class="feature-title">Provincial Heatmaps</div>
+            <p class="feature-desc">Identify the exact provinces and metros where demand for your specific tech stack peaks — with opportunity indices per region.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-num">03 — ROADMAP</span>
+            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            <div class="feature-title">Skill Gap Analysis</div>
+            <p class="feature-desc">A ranked, personalised roadmap of certifications and technologies needed to break into the next salary bracket for your profile.</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    &copy; 2025 EmployAI ANALYTICS PLATFORM — BUILT FOR THE FUTURE OF WORK IN SOUTH AFRICA
+</footer>
+
+<script>
+    // Animate stat counters
+    function animateCount(el) {
+        const target = parseInt(el.getAttribute('data-count'));
+        const suffix = target === 94 ? '%' : target === 9 ? '' : '+';
+        let current = 0;
+        const step = target / 60;
+        const timer = setInterval(() => {
+            current = Math.min(current + step, target);
+            el.textContent = Math.floor(current).toLocaleString() + suffix;
+            if (current >= target) clearInterval(timer);
+        }, 16);
+    }
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.querySelectorAll('[data-count]').forEach(animateCount);
+                observer.unobserve(e.target);
+            }
+        });
+    });
+    document.querySelectorAll('.stats-row').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmployAI — Quantum Career Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --acid: #b8ff35;
+            --plasma: #00f5d4;
+            --void: #080810;
+            --surface: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --text-dim: #5a5a7a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--void);
+            color: #e8e8f0;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        /* Custom Cursor */
+        .cursor-dot {
+            width: 6px; height: 6px;
+            background: var(--acid);
+            border-radius: 50%;
+            position: fixed; top: 0; left: 0;
+            pointer-events: none; z-index: 9999;
+            transition: transform 0.1s ease;
+            box-shadow: 0 0 12px var(--acid);
+        }
+        .cursor-ring {
+            width: 32px; height: 32px;
+            border: 1px solid rgba(184,255,53,0.4);
+            border-radius: 50%;
+            position: fixed; top: 0; left: 0;
+            pointer-events: none; z-index: 9998;
+            transition: transform 0.2s ease, width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+            transform: translate(-13px, -13px);
+        }
+        body:hover .cursor-ring { border-color: rgba(0,245,212,0.5); }
+
+        /* Grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(184,255,53,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(184,255,53,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scanline effect */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+        .mono { font-family: 'Space Mono', monospace; }
+
+        .glass {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+        }
+
+        .glow-acid { box-shadow: 0 0 30px rgba(184,255,53,0.15), 0 0 60px rgba(184,255,53,0.05); }
+        .glow-plasma { box-shadow: 0 0 30px rgba(0,245,212,0.15), 0 0 60px rgba(0,245,212,0.05); }
+        .text-acid { color: var(--acid); }
+        .text-plasma { color: var(--plasma); }
+
+        .acid-line {
+            background: linear-gradient(90deg, var(--acid), var(--plasma));
+            height: 1px;
+        }
+
+        /* Nav */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 100;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(8,8,16,0.9), transparent);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: -0.03em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #e8e8f0;
+        }
+
+        .logo-mark {
+            width: 32px; height: 32px;
+            border: 1px solid var(--acid);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .logo-mark::before {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 60%;
+            background: var(--acid);
+            opacity: 0.2;
+            animation: logoBreath 3s ease-in-out infinite;
+        }
+        @keyframes logoBreath {
+            0%, 100% { height: 60%; opacity: 0.2; }
+            50% { height: 80%; opacity: 0.4; }
+        }
+        .logo-mark span {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--acid);
+            font-weight: 700;
+            position: relative;
+        }
+
+        .nav-status {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 6px; height: 6px;
+            background: var(--acid);
+            border-radius: 50%;
+            animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--acid);
+            color: #080810;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.875rem;
+            padding: 14px 32px;
+            border-radius: 4px;
+            border: none;
+            cursor: none;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            letter-spacing: 0.02em;
+        }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: -100%; left: -100%;
+            width: 300%; height: 300%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(184,255,53,0.4); }
+        .btn-primary:hover::before { top: 100%; left: 100%; }
+
+        .btn-ghost {
+            background: transparent;
+            color: #e8e8f0;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 13px 32px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: none;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .btn-ghost:hover { border-color: rgba(184,255,53,0.4); background: rgba(184,255,53,0.05); }
+
+        /* Stat card */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            padding: 28px;
+            border-radius: 12px;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--acid), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .stat-card:hover::before { opacity: 1; }
+
+        /* Number counter animation */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .count-anim { animation: countUp 0.8s ease forwards; }
+
+        /* Input styling */
+        input, select, textarea {
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            color: #e8e8f0 !important;
+            border-radius: 6px !important;
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: 0.9rem !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+            width: 100%;
+            padding: 14px 16px;
+            outline: none;
+            appearance: none;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: rgba(184,255,53,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(184,255,53,0.08) !important;
+        }
+        input::placeholder, textarea::placeholder { color: #3a3a5a !important; }
+        select option { background: #0d0d1a; }
+        textarea { resize: none; }
+
+        /* Apex chart overrides */
+        .apexcharts-tooltip { background: #0d0d1a !important; border: 1px solid rgba(184,255,53,0.3) !important; }
+
+        /* Floating particles */
+        .particle-field { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .particle {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: var(--acid);
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-20vh) translateX(40px); opacity: 0; }
+        }
+
+        /* Page transition */
+        .page-enter {
+            animation: pageIn 0.6s ease forwards;
+        }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--void); }
+        ::-webkit-scrollbar-thumb { background: rgba(184,255,53,0.3); border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <!-- Custom cursor -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- Particle field -->
+    <div class="particle-field" id="particleField"></div>
+
+    <nav>
+        <a href="/" class="nav-logo">
+            <div class="logo-mark"><span>EA</span></div>
+            EmployAI
+        </a>
+        <div class="nav-status">
+            <div class="status-dot"></div>
+            <span>SYSTEM ONLINE</span>
+            <span style="color: rgba(255,255,255,0.15)">|</span>
+            <span id="navTime" class="mono">--:--:--</span>
+        </div>
+    </nav>
+
+    <div class="page-enter" style="position: relative; z-index: 2;">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Custom cursor
+        const dot = document.getElementById('cursorDot');
+        const ring = document.getElementById('cursorRing');
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', e => {
+            mouseX = e.clientX; mouseY = e.clientY;
+            dot.style.transform = `translate(${e.clientX - 3}px, ${e.clientY - 3}px)`;
+            ring.style.transform = `translate(${e.clientX - 16}px, ${e.clientY - 16}px)`;
+        });
+        document.querySelectorAll('button, a, input, select, textarea').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                ring.style.width = '48px'; ring.style.height = '48px';
+                ring.style.transform = `translate(${mouseX - 24}px, ${mouseY - 24}px)`;
+                ring.style.borderColor = 'rgba(184,255,53,0.8)';
+            });
+            el.addEventListener('mouseleave', () => {
+                ring.style.width = '32px'; ring.style.height = '32px';
+                ring.style.borderColor = 'rgba(184,255,53,0.4)';
+            });
+        });
+
+        // Particles
+        const pf = document.getElementById('particleField');
+        for (let i = 0; i < 25; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (8 + Math.random() * 15) + 's';
+            p.style.animationDelay = (Math.random() * 10) + 's';
+            p.style.opacity = Math.random() * 0.5;
+            if (Math.random() > 0.7) { p.style.background = 'var(--plasma)'; p.style.width = '1px'; p.style.height = '8px'; }
+            pf.appendChild(p);
+        }
+
+        // Live clock
+        function updateClock() {
+            const t = new Date();
+            document.getElementById('navTime').textContent = t.toLocaleTimeString('en-ZA', {hour12: false});
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>

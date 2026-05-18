@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-8 max-w-[1400px] mx-auto space-y-8">
+    
+    <!-- Header Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="glass p-6 rounded-3xl border-l-4 border-indigo-500">
+            <p class="text-slate-400 text-xs font-bold uppercase">Employability Score</p>
+            <h2 id="scoreText" class="text-4xl font-black mt-2">0%</h2>
+        </div>
+        <div class="glass p-6 rounded-3xl border-l-4 border-cyan-500">
+            <p class="text-slate-400 text-xs font-bold uppercase">Peer Employment Rate</p>
+            <h2 id="peerRate" class="text-4xl font-black mt-2">0%</h2>
+        </div>
+        <div class="glass p-6 rounded-3xl border-l-4 border-emerald-500">
+            <p class="text-slate-400 text-xs font-bold uppercase">Market Salary Est.</p>
+            <h2 id="salaryText" class="text-2xl font-black mt-2">---</h2>
+        </div>
+        <div class="glass p-6 rounded-3xl border-l-4 border-fuchsia-500">
+            <p class="text-slate-400 text-xs font-bold uppercase">Market Match</p>
+            <h2 id="matchText" class="text-4xl font-black mt-2">0%</h2>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-8">
+        <!-- Supply vs Demand Chart -->
+        <div class="col-span-12 lg:col-span-7 glass p-8 rounded-[2.5rem]">
+            <h3 class="text-xl font-bold mb-6">Market Availability vs. Your Employability</h3>
+            <div id="marketGapChart"></div>
+            <p class="text-slate-400 text-sm mt-4 italic" id="peerInsight"></p>
+        </div>
+
+        <!-- Provincial Trends -->
+        <div class="col-span-12 lg:col-span-5 glass p-8 rounded-[2.5rem]">
+            <h3 class="text-xl font-bold mb-6">Top Provinces for Your Profile</h3>
+            <div id="provinceChart"></div>
+        </div>
+
+        <!-- Skills Gap & Roadmap -->
+        <div class="col-span-12 lg:col-span-6 glass p-8 rounded-[2.5rem]">
+            <h3 class="text-xl font-bold mb-6 text-indigo-400">Critical Skills Gap</h3>
+            <div id="skillsList" class="grid grid-cols-1 gap-3"></div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-6 glass p-8 rounded-[2.5rem]">
+            <h3 class="text-xl font-bold mb-6 text-cyan-400">AI Career Roadmap</h3>
+            <div id="roadmapList" class="space-y-4"></div>
+        </div>
+    </div>
+</div>
+
+<!-- All JavaScript stays inside the SAME block content -->
+<script>
+    const rawData = localStorage.getItem('employ_data');
+    console.log("Raw AI Data Received:", rawData);
+    
+    const data = JSON.parse(rawData);
+
+    if (!data) {
+        alert("No data found. Redirecting to form...");
+        window.location.href = '/analyze';
+    }
+
+    // Update Text Fields
+    document.getElementById('scoreText').innerText = (data.score || 0) + '%';
+    document.getElementById('peerRate').innerText = (data.peer_employment_rate || 0) + '%';
+    document.getElementById('salaryText').innerText = data.salary_benchmark || 'N/A';
+    
+    const matchVal = data.market_stats ? data.market_stats.user_match_percentage : 0;
+    document.getElementById('matchText').innerText = matchVal + '%';
+    document.getElementById('peerInsight').innerText = data.peer_comparison_insight || '';
+
+    // Update Lists
+    const skillsList = document.getElementById('skillsList');
+    skillsList.innerHTML = ''; 
+    if (data.skills_gap) {
+        data.skills_gap.forEach(s => {
+            skillsList.innerHTML += `<div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm">⚠️ ${s}</div>`;
+        });
+    }
+
+    const roadmapList = document.getElementById('roadmapList');
+    roadmapList.innerHTML = '';
+    if (data.career_roadmap) {
+        data.career_roadmap.forEach(r => {
+            roadmapList.innerHTML += `<div class="flex gap-3 text-sm text-slate-300"><div class="w-2 h-2 mt-1.5 rounded-full bg-cyan-500 shrink-0"></div>${r}</div>`;
+        });
+    }
+
+    // Market Gap Chart
+    const availability = data.market_stats ? data.market_stats.job_availability : 0;
+    const userMatch = data.market_stats ? data.market_stats.user_match_percentage : 0;
+
+    new ApexCharts(document.querySelector("#marketGapChart"), {
+        chart: { type: 'bar', height: 350, toolbar: {show: false} },
+        series: [
+            { name: 'Market Job Availability', data: [availability] },
+            { name: 'Your Employability Match', data: [userMatch] }
+        ],
+        plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 10 } },
+        colors: ['#334155', '#6366f1'],
+        xaxis: { categories: ['Current Market State'] },
+        theme: { mode: 'dark' },
+        legend: { position: 'top' }
+    }).render();
+
+    // Provincial Trends
+    if (data.regional_trends && data.regional_trends.length > 0) {
+        new ApexCharts(document.querySelector("#provinceChart"), {
+            chart: { type: 'bar', height: 350, toolbar: {show: false} },
+            series: [{ name: 'Opportunity Index', data: data.regional_trends.map(r => r.opportunity_index || 0) }],
+            plotOptions: { bar: { horizontal: true, borderRadius: 8 } },
+            colors: ['#06b6d4'],
+            xaxis: { categories: data.regional_trends.map(r => r.province || 'Unknown') },
+            theme: { mode: 'dark' }
+        }).render();
+    }
+</script>
+{% endblock %}

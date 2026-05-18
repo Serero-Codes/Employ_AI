@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .form-shell {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 100px 24px 60px;
+    }
+    .form-container {
+        width: 100%;
+        max-width: 640px;
+    }
+
+    .form-header {
+        margin-bottom: 48px;
+    }
+    .step-indicator {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--acid);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .step-indicator::before {
+        content: '';
+        display: block;
+        width: 24px; height: 1px;
+        background: var(--acid);
+    }
+    .form-title {
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+    }
+    .form-title span {
+        background: linear-gradient(135deg, var(--acid), var(--plasma));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Progress track */
+    .progress-track {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-bottom: 48px;
+        position: relative;
+    }
+    .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        position: relative;
+    }
+    .progress-step:last-child { flex: none; }
+    .step-node {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        background: var(--void);
+        transition: all 0.3s ease;
+        z-index: 2;
+        flex-shrink: 0;
+        position: relative;
+    }
+    .step-node.active {
+        border-color: var(--acid);
+        color: var(--acid);
+        box-shadow: 0 0 20px rgba(184,255,53,0.3);
+    }
+    .step-node.done {
+        border-color: var(--acid);
+        background: var(--acid);
+        color: #080810;
+    }
+    .step-connector {
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    .step-connector-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--acid), var(--plasma));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.5s ease;
+    }
+    .step-connector.done .step-connector-fill { transform: scaleX(1); }
+    .step-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.58rem;
+        color: var(--text-dim);
+        position: absolute;
+        top: 44px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        letter-spacing: 0.05em;
+    }
+
+    /* Form panel */
+    .form-panel {
+        display: none;
+    }
+    .form-panel.active {
+        display: block;
+        animation: panelIn 0.4s ease forwards;
+    }
+    @keyframes panelIn {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .field-group {
+        margin-bottom: 20px;
+    }
+    .field-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 32px;
+    }
+
+    .btn-back {
+        background: transparent;
+        color: var(--text-dim);
+        font-family: 'Syne', sans-serif;
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 14px 24px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.06);
+        cursor: none;
+        transition: all 0.2s ease;
+    }
+    .btn-back:hover { border-color: rgba(255,255,255,0.15); color: #e8e8f0; }
+    .btn-continue {
+        flex: 1;
+    }
+
+    /* Submit button special state */
+    .btn-submit {
+        background: linear-gradient(135deg, var(--acid), var(--plasma));
+        color: #080810;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 0.875rem;
+        padding: 16px 32px;
+        border-radius: 4px;
+        border: none;
+        cursor: none;
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        letter-spacing: 0.03em;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,245,212,0.35); }
+    .btn-submit:disabled { opacity: 0.6; transform: none; }
+
+    /* Loading overlay */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(8,8,16,0.95);
+        z-index: 200;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-ring {
+        width: 80px; height: 80px;
+        border: 1px solid rgba(184,255,53,0.1);
+        border-top-color: var(--acid);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        color: var(--acid);
+        letter-spacing: 0.15em;
+        text-align: center;
+    }
+    .loading-sub {
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        margin-top: 8px;
+    }
+    .loading-steps { list-style: none; text-align: left; }
+    .loading-steps li {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: #3a3a5a;
+        padding: 4px 0;
+        letter-spacing: 0.08em;
+        transition: color 0.3s ease;
+    }
+    .loading-steps li.done { color: var(--acid); }
+    .loading-steps li.active { color: var(--plasma); }
+</style>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-ring"></div>
+    <div class="loading-text">
+        CONSULTING AI LABOUR MARKETS
+        <div class="loading-sub" id="loadingStatus">Initialising analysis engine...</div>
+    </div>
+    <ul class="loading-steps" id="loadingSteps">
+        <li id="ls1">→ Cross-referencing provincial databases</li>
+        <li id="ls2">→ Computing employability matrix</li>
+        <li id="ls3">→ Benchmarking salary ranges</li>
+        <li id="ls4">→ Identifying skill gaps</li>
+        <li id="ls5">→ Generating career roadmap</li>
+    </ul>
+</div>
+
+<div class="form-shell">
+    <div class="form-container">
+
+        <div class="form-header">
+            <div class="step-indicator" id="stepIndicator">Step 1 of 4</div>
+            <h2 class="form-title" id="formTitle">Profile <span>Demographics</span></h2>
+        </div>
+
+        <!-- Progress track -->
+        <div class="progress-track" style="padding-bottom:24px;">
+            <div class="step-node active" id="node1">01</div>
+            <div class="step-connector" id="conn1"><div class="step-connector-fill"></div></div>
+            <div class="step-node" id="node2">02</div>
+            <div class="step-connector" id="conn2"><div class="step-connector-fill"></div></div>
+            <div class="step-node" id="node3">03</div>
+            <div class="step-connector" id="conn3"><div class="step-connector-fill"></div></div>
+            <div class="step-node" id="node4">04</div>
+        </div>
+
+        <!-- Step 1: Demographics -->
+        <div class="form-panel active" id="step1">
+            <div class="grid-2">
+                <div class="field-group">
+                    <label class="field-label">Age</label>
+                    <input id="age" type="number" placeholder="e.g. 27" min="16" max="65">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Gender</label>
+                    <select id="gender">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other / Prefer not to say</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Province</label>
+                <select id="location">
+                    <option>Gauteng</option>
+                    <option>Western Cape</option>
+                    <option>KwaZulu-Natal</option>
+                    <option>Eastern Cape</option>
+                    <option>Free State</option>
+                    <option>Limpopo</option>
+                    <option>Mpumalanga</option>
+                    <option>North West</option>
+                    <option>Northern Cape</option>
+                </select>
+            </div>
+            <div class="btn-row">
+                <button class="btn-primary btn-continue" onclick="goStep(2)">Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Education -->
+        <div class="form-panel" id="step2">
+            <div class="field-group">
+                <label class="field-label">Qualification Title</label>
+                <input id="title" type="text" placeholder="e.g. B.Sc Computer Science">
+            </div>
+            <div class="grid-2">
+                <div class="field-group">
+                    <label class="field-label">NQF Level</label>
+                    <select id="nqf">
+                        <option value="5">NQF 5 — Higher Certificate</option>
+                        <option value="6">NQF 6 — Diploma</option>
+                        <option value="7" selected>NQF 7 — Degree</option>
+                        <option value="8">NQF 8 — Honours</option>
+                        <option value="9">NQF 9 — Masters</option>
+                        <option value="10">NQF 10 — PhD</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Field of Study</label>
+                    <input id="field" type="text" placeholder="e.g. Data Science">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Core Concepts Covered</label>
+                <textarea id="concepts" rows="3" placeholder="e.g. SDLC, Financial Modeling, Thermodynamics, OOP, Statistics..."></textarea>
+            </div>
+            <div class="btn-row">
+                <button class="btn-back" onclick="goStep(1)">← Back</button>
+                <button class="btn-primary btn-continue" onclick="goStep(3)">Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Skills -->
+        <div class="form-panel" id="step3">
+            <div class="field-group">
+                <label class="field-label">Technologies & Tools</label>
+                <textarea id="tech" rows="3" placeholder="e.g. Python, AWS, SAP, AutoCAD, TensorFlow, SQL, React..."></textarea>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Certifications</label>
+                <textarea id="certs" rows="3" placeholder="e.g. AWS Cloud Practitioner, CFA Level 1, PMP, CompTIA Security+..."></textarea>
+            </div>
+            <div class="btn-row">
+                <button class="btn-back" onclick="goStep(2)">← Back</button>
+                <button class="btn-primary btn-continue" onclick="goStep(4)">Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Experience -->
+        <div class="form-panel" id="step4">
+            <div class="field-group">
+                <label class="field-label">Years of Experience</label>
+                <input id="exp" type="number" placeholder="e.g. 3" min="0" max="40">
+            </div>
+            <div class="field-group">
+                <label class="field-label">Primary Industry</label>
+                <input id="industry" type="text" placeholder="e.g. Banking, Mining, Tech, Healthcare...">
+            </div>
+            <div class="btn-row">
+                <button class="btn-back" onclick="goStep(3)">← Back</button>
+                <button class="btn-submit" id="submitBtn" onclick="submitForm()">Run Deep Analysis ⟶</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const titles = ['Profile Demographics', 'Education <span>History</span>', 'Skills & <span>Certifications</span>', 'Professional <span>Experience</span>'];
+const stepNames = ['Demographics', 'Education', 'Skills', 'Experience'];
+let currentStep = 1;
+
+function goStep(n) {
+    document.getElementById('step' + currentStep).classList.remove('active');
+    
+    // Update nodes & connectors
+    for (let i = 1; i <= 4; i++) {
+        const node = document.getElementById('node' + i);
+        node.classList.remove('active', 'done');
+        if (i < n) { node.classList.add('done'); node.innerHTML = '✓'; }
+        else if (i === n) { node.classList.add('active'); node.innerHTML = '0' + i; }
+        else { node.innerHTML = '0' + i; }
+    }
+    for (let i = 1; i <= 3; i++) {
+        const conn = document.getElementById('conn' + i);
+        conn.classList.toggle('done', i < n);
+    }
+
+    document.getElementById('stepIndicator').textContent = `Step ${n} of 4`;
+    document.getElementById('formTitle').innerHTML = titles[n - 1];
+    currentStep = n;
+    document.getElementById('step' + n).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function submitForm() {
+    if (!document.getElementById('title').value || !document.getElementById('tech').value) {
+        alert("Please fill in your Qualification Title and Technologies used.");
+        return;
+    }
+
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+
+    // Simulate step-by-step loading animation
+    const steps = ['ls1','ls2','ls3','ls4','ls5'];
+    for (let i = 0; i < steps.length; i++) {
+        if (i > 0) document.getElementById(steps[i-1]).classList.replace('active', 'done');
+        document.getElementById(steps[i]).classList.add('active');
+        await new Promise(r => setTimeout(r, 800));
+    }
+
+    const data = {
+        age: document.getElementById('age').value,
+        gender: document.getElementById('gender').value,
+        location: document.getElementById('location').value,
+        title: document.getElementById('title').value,
+        nqf: document.getElementById('nqf').value,
+        field: document.getElementById('field').value,
+        concepts: document.getElementById('concepts').value,
+        tech: document.getElementById('tech').value,
+        certs: document.getElementById('certs').value,
+        exp: document.getElementById('exp').value,
+        industry: document.getElementById('industry').value
+    };
+
+    try {
+        const res = await fetch('/api/process', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.error || `Server Error (${res.status})`); }
+        const result = await res.json();
+        if (!result || Object.keys(result).length === 0) throw new Error("AI returned an empty response.");
+        localStorage.setItem('employ_data', JSON.stringify(result));
+        window.location.href = '/dashboard';
+    } catch (err) {
+        overlay.classList.remove('show');
+        alert("Analysis failed: " + err.message + "\n\nCheck your server terminal.");
+    }
+}
+</script>
+{% endblock %}

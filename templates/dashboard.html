@@ -1,0 +1,881 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .dash-shell {
+        padding: 100px 32px 80px;
+        max-width: 1440px;
+        margin: 0 auto;
+    }
+
+    /* Dashboard header */
+    .dash-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 48px;
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+    .dash-title-block {}
+    .dash-eyebrow {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem;
+        color: var(--acid);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .dash-eyebrow::before { content: ''; display: block; width: 20px; height: 1px; background: var(--acid); }
+    .dash-title { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.04em; }
+    .dash-meta {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        margin-top: 8px;
+        letter-spacing: 0.05em;
+    }
+    .dash-meta span { color: var(--plasma); }
+
+    /* Score ring widget */
+    .score-ring-widget {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .score-ring-container {
+        position: relative;
+        width: 100px; height: 100px;
+    }
+    .score-ring-svg {
+        transform: rotate(-90deg);
+        width: 100%; height: 100%;
+    }
+    .score-ring-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 5; }
+    .score-ring-fill {
+        fill: none; stroke: var(--acid); stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 283;
+        stroke-dashoffset: 283;
+        transition: stroke-dashoffset 1.5s ease;
+        filter: drop-shadow(0 0 6px rgba(184,255,53,0.6));
+    }
+    .score-center {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+    }
+    .score-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--acid);
+    }
+    .score-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.45rem;
+        color: var(--text-dim);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-top: 2px;
+    }
+    .score-meta { }
+    .score-meta-title {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .score-meta-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    /* KPI row */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .kpi-card {
+        padding: 24px;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease;
+    }
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+    }
+    
+    .kpi-card.acid::before { background: linear-gradient(90deg, transparent, var(--acid), transparent); }
+    .kpi-card.plasma::before { background: linear-gradient(90deg, transparent, var(--plasma), transparent); }
+    .kpi-card.violet::before { background: linear-gradient(90deg, transparent, #a78bfa, transparent); }
+    .kpi-card.rose::before { background: linear-gradient(90deg, transparent, #f472b6, transparent); }
+
+    .kpi-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.58rem;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .kpi-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .kpi-val {
+        font-family: 'Syne', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .kpi-sub {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        margin-top: 8px;
+    }
+    .kpi-bg-num {
+        position: absolute;
+        bottom: -10px; right: -5px;
+        font-family: 'Syne', sans-serif;
+        font-size: 5rem;
+        font-weight: 800;
+        opacity: 0.03;
+        pointer-events: none;
+        letter-spacing: -0.05em;
+    }
+
+    /* Chart grid */
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+    }
+
+    .chart-panel {
+        border-radius: 12px;
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+    }
+    .chart-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, rgba(184,255,53,0.02), transparent 60%);
+        pointer-events: none;
+    }
+    .panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    .panel-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+    .panel-sub {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.58rem;
+        color: var(--text-dim);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-top: 4px;
+    }
+    .panel-badge {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.58rem;
+        padding: 4px 10px;
+        border-radius: 100px;
+        letter-spacing: 0.05em;
+    }
+    .badge-acid { background: rgba(184,255,53,0.1); color: var(--acid); border: 1px solid rgba(184,255,53,0.2); }
+    .badge-plasma { background: rgba(0,245,212,0.1); color: var(--plasma); border: 1px solid rgba(0,245,212,0.2); }
+
+    .col-8 { grid-column: span 8; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-5 { grid-column: span 5; }
+    .col-7 { grid-column: span 7; }
+    .col-12 { grid-column: span 12; }
+
+    /* Skill gap bars */
+    .skill-item {
+        margin-bottom: 16px;
+    }
+    .skill-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    .skill-name { font-size: 0.85rem; color: #c8c8d8; }
+    .skill-pct {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-dim);
+    }
+    .skill-bar-track {
+        height: 3px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .skill-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 1s ease;
+    }
+    .skill-priority {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.55rem;
+        padding: 2px 8px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .priority-critical { background: rgba(244,63,94,0.15); color: #fb7185; }
+    .priority-high { background: rgba(251,146,60,0.15); color: #fb923c; }
+    .priority-medium { background: rgba(250,204,21,0.15); color: #fbbf24; }
+
+    /* Roadmap timeline */
+    .roadmap-item {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .roadmap-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 32px;
+        width: 1px;
+        height: calc(100% + 4px);
+        background: linear-gradient(to bottom, rgba(0,245,212,0.3), transparent);
+    }
+    .roadmap-node {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,245,212,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--plasma);
+        background: rgba(0,245,212,0.05);
+        position: relative;
+        z-index: 1;
+    }
+    .roadmap-content { flex: 1; padding-top: 6px; }
+    .roadmap-text { font-size: 0.85rem; color: #c8c8d8; line-height: 1.5; }
+    .roadmap-tag {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.55rem;
+        color: var(--text-dim);
+        margin-top: 4px;
+        letter-spacing: 0.05em;
+    }
+
+    /* Peer comparison bar */
+    .peer-bar-container { margin-top: 8px; }
+    .peer-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+    .peer-bar-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        width: 80px;
+        flex-shrink: 0;
+        letter-spacing: 0.05em;
+    }
+    .peer-bar-track {
+        flex: 1;
+        height: 24px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    .peer-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 1.2s ease;
+        display: flex;
+        align-items: center;
+        padding-left: 12px;
+    }
+    .peer-bar-val {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* Salary gauge */
+    .salary-display {
+        text-align: center;
+        padding: 20px 0;
+    }
+    .salary-main {
+        font-family: 'Syne', sans-serif;
+        font-size: 2.8rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--acid), var(--plasma));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .salary-range {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-dim);
+        margin-top: 6px;
+        letter-spacing: 0.08em;
+    }
+    .salary-percentile {
+        margin-top: 20px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .percentile-bar-track {
+        height: 6px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 3px;
+        position: relative;
+        margin: 12px 0 8px;
+    }
+    .percentile-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #6366f1, var(--acid));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 1.5s ease;
+    }
+    .percentile-marker {
+        position: absolute;
+        top: -4px;
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        background: var(--acid);
+        border: 2px solid var(--void);
+        box-shadow: 0 0 10px rgba(184,255,53,0.5);
+        transform: translateX(-50%);
+        transition: left 1.5s ease;
+    }
+    .percentile-labels {
+        display: flex;
+        justify-content: space-between;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.55rem;
+        color: var(--text-dim);
+        letter-spacing: 0.05em;
+    }
+
+    /* Match meter */
+    .match-meter {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 8px;
+    }
+    .meter-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .meter-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: var(--text-dim);
+        width: 100px;
+        flex-shrink: 0;
+        letter-spacing: 0.05em;
+    }
+    .meter-track {
+        flex: 1;
+        height: 6px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .meter-fill {
+        height: 100%;
+        border-radius: 3px;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 1s ease;
+    }
+    .meter-val {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        color: #c8c8d8;
+        width: 36px;
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    /* Insight callout */
+    .insight-box {
+        border-left: 2px solid var(--acid);
+        padding: 12px 16px;
+        background: rgba(184,255,53,0.04);
+        border-radius: 0 6px 6px 0;
+        margin-top: 16px;
+    }
+    .insight-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.55rem;
+        color: var(--acid);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .insight-text { font-size: 0.82rem; color: #8888a8; line-height: 1.6; }
+</style>
+
+<div class="dash-shell">
+
+    <!-- Dashboard header -->
+    <div class="dash-header">
+        <div class="dash-title-block">
+            <div class="dash-eyebrow">Career Analytics Dashboard</div>
+            <h1 class="dash-title">Market Intelligence Report</h1>
+            <p class="dash-meta">Generated <span id="genTime">—</span> · Profile analysis complete</p>
+        </div>
+        <div class="score-ring-widget">
+            <div class="score-ring-container">
+                <svg class="score-ring-svg" viewBox="0 0 100 100">
+                    <circle class="score-ring-bg" cx="50" cy="50" r="45"/>
+                    <circle class="score-ring-fill" id="scoreRing" cx="50" cy="50" r="45"/>
+                </svg>
+                <div class="score-center">
+                    <span class="score-val" id="scoreRingVal">0%</span>
+                    <span class="score-label">Score</span>
+                </div>
+            </div>
+            <div class="score-meta">
+                <div class="score-meta-title">Employability</div>
+                <div class="score-meta-val text-acid" id="scoreMetaVal">—</div>
+                <div class="score-meta-title" style="margin-top:12px;">Peer Rate</div>
+                <div class="score-meta-val" style="color:var(--plasma)" id="peerMetaVal">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card acid glass">
+            <div class="kpi-label"><div class="kpi-dot" style="background:var(--acid)"></div>Employability Score</div>
+            <div class="kpi-val text-acid" id="scoreText">0%</div>
+            <div class="kpi-sub">vs. market baseline</div>
+            <div class="kpi-bg-num" id="scoreTextBg">0</div>
+        </div>
+        <div class="kpi-card plasma glass">
+            <div class="kpi-label"><div class="kpi-dot" style="background:var(--plasma)"></div>Peer Employment Rate</div>
+            <div class="kpi-val text-plasma" id="peerRate">0%</div>
+            <div class="kpi-sub">similar profiles hired</div>
+            <div class="kpi-bg-num">%</div>
+        </div>
+        <div class="kpi-card violet glass">
+            <div class="kpi-label"><div class="kpi-dot" style="background:#a78bfa"></div>Market Match</div>
+            <div class="kpi-val" style="color:#a78bfa" id="matchText">0%</div>
+            <div class="kpi-sub">demand alignment</div>
+            <div class="kpi-bg-num">↑</div>
+        </div>
+        <div class="kpi-card rose glass">
+            <div class="kpi-label"><div class="kpi-dot" style="background:#f472b6"></div>Market Salary Est.</div>
+            <div class="kpi-val" style="color:#f472b6;font-size:1.4rem" id="salaryText">—</div>
+            <div class="kpi-sub">annual benchmark</div>
+            <div class="kpi-bg-num">R</div>
+        </div>
+    </div>
+
+    <!-- Chart Grid Row 1 -->
+    <div class="chart-grid" style="margin-bottom:20px;">
+
+        <!-- Market Gap Chart (large) -->
+        <div class="chart-panel glass col-8">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Market Availability vs. Your Employability</div>
+                    <div class="panel-sub">Supply — Demand Gap Analysis</div>
+                </div>
+                <span class="panel-badge badge-acid" id="gapBadge">Analysing...</span>
+            </div>
+            <div id="marketGapChart"></div>
+            <div class="insight-box" id="insightBox" style="display:none">
+                <div class="insight-label">AI Insight</div>
+                <p class="insight-text" id="peerInsight"></p>
+            </div>
+        </div>
+
+        <!-- Salary Benchmark Panel -->
+        <div class="chart-panel glass col-4">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Salary Benchmark</div>
+                    <div class="panel-sub">Market Position</div>
+                </div>
+                <span class="panel-badge badge-plasma">LIVE</span>
+            </div>
+            <div class="salary-display">
+                <div class="salary-main" id="salaryMain">—</div>
+                <div class="salary-range" id="salaryRange">estimated annual package</div>
+            </div>
+            <div class="salary-percentile">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;">PERCENTILE RANKING</span>
+                    <span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--acid)" id="percentileVal">—</span>
+                </div>
+                <div class="percentile-bar-track">
+                    <div class="percentile-fill" id="percentileFill"></div>
+                    <div class="percentile-marker" id="percentileMarker" style="left:0%"></div>
+                </div>
+                <div class="percentile-labels"><span>0th</span><span>25th</span><span>50th</span><span>75th</span><span>100th</span></div>
+            </div>
+            <div class="match-meter" style="margin-top:20px;">
+                <div class="meter-row">
+                    <span class="meter-label">JOB AVAIL.</span>
+                    <div class="meter-track"><div class="meter-fill" id="mfAvail" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div>
+                    <span class="meter-val" id="mvAvail">—</span>
+                </div>
+                <div class="meter-row">
+                    <span class="meter-label">YOUR MATCH</span>
+                    <div class="meter-track"><div class="meter-fill" id="mfMatch" style="background:linear-gradient(90deg,var(--acid),var(--plasma))"></div></div>
+                    <span class="meter-val" id="mvMatch">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Grid Row 2 -->
+    <div class="chart-grid" style="margin-bottom:20px;">
+
+        <!-- Provincial Heatmap -->
+        <div class="chart-panel glass col-5">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Provincial Opportunity Index</div>
+                    <div class="panel-sub">Top regions for your profile</div>
+                </div>
+                <span class="panel-badge badge-plasma">GEO</span>
+            </div>
+            <div id="provinceChart"></div>
+        </div>
+
+        <!-- Skills Gap -->
+        <div class="chart-panel glass col-7">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Critical Skills Gap</div>
+                    <div class="panel-sub">Ranked by market impact</div>
+                </div>
+                <span class="panel-badge" style="background:rgba(251,113,133,0.1);color:#fb7185;border:1px solid rgba(251,113,133,0.2)">GAPS</span>
+            </div>
+            <div id="skillsList"></div>
+        </div>
+    </div>
+
+    <!-- Chart Grid Row 3 -->
+    <div class="chart-grid" style="margin-bottom:20px;">
+
+        <!-- Peer comparison radar/bar -->
+        <div class="chart-panel glass col-6">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Peer Profile Comparison</div>
+                    <div class="panel-sub">You vs. successfully placed peers</div>
+                </div>
+                <span class="panel-badge badge-acid">BENCH</span>
+            </div>
+            <div id="radarChart"></div>
+        </div>
+
+        <!-- Career roadmap -->
+        <div class="chart-panel glass col-6">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">AI Career Roadmap</div>
+                    <div class="panel-sub">Recommended next steps</div>
+                </div>
+                <span class="panel-badge badge-plasma">AI</span>
+            </div>
+            <div id="roadmapList"></div>
+        </div>
+    </div>
+
+    <!-- Row 4: Trend sparklines -->
+    <div class="chart-grid">
+        <div class="chart-panel glass col-12">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">12-Month Market Trend Projection</div>
+                    <div class="panel-sub">Demand forecast for your skill profile</div>
+                </div>
+                <span class="panel-badge badge-acid">FORECAST</span>
+            </div>
+            <div id="trendChart"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.getElementById('genTime').textContent = new Date().toLocaleString('en-ZA');
+
+const rawData = localStorage.getItem('employ_data');
+if (!rawData) { window.location.href = '/analyze'; }
+const data = JSON.parse(rawData);
+if (!data) { window.location.href = '/analyze'; }
+
+// ---- Populate KPIs ----
+const score = data.score || 0;
+const peerRate = data.peer_employment_rate || 0;
+const matchVal = data.market_stats ? data.market_stats.user_match_percentage : 0;
+const availability = data.market_stats ? data.market_stats.job_availability : 0;
+const salary = data.salary_benchmark || 'N/A';
+
+document.getElementById('scoreText').innerText = score + '%';
+document.getElementById('scoreTextBg').innerText = score;
+document.getElementById('peerRate').innerText = peerRate + '%';
+document.getElementById('matchText').innerText = matchVal + '%';
+document.getElementById('salaryText').innerText = salary;
+document.getElementById('salaryMain').innerText = salary;
+document.getElementById('scoreRingVal').innerText = score + '%';
+document.getElementById('scoreMetaVal').innerText = score + '%';
+document.getElementById('peerMetaVal').innerText = peerRate + '%';
+document.getElementById('gapBadge').innerText = availability > matchVal ? '⚠ GAP DETECTED' : '✓ MATCHED';
+
+// Score ring animation
+setTimeout(() => {
+    const circumference = 283;
+    const offset = circumference - (score / 100) * circumference;
+    document.getElementById('scoreRing').style.strokeDashoffset = offset;
+    document.getElementById('scoreRingVal').innerText = score + '%';
+}, 300);
+
+// Percentile (derive from score)
+const pct = Math.round(score * 0.9);
+document.getElementById('percentileVal').innerText = pct + 'th percentile';
+setTimeout(() => {
+    document.getElementById('percentileFill').style.transform = `scaleX(${pct/100})`;
+    document.getElementById('percentileMarker').style.left = pct + '%';
+}, 600);
+
+// Meters
+document.getElementById('mvAvail').innerText = availability + '%';
+document.getElementById('mvMatch').innerText = matchVal + '%';
+setTimeout(() => {
+    document.getElementById('mfAvail').style.transform = `scaleX(${availability/100})`;
+    document.getElementById('mfMatch').style.transform = `scaleX(${matchVal/100})`;
+}, 600);
+
+// Insight
+if (data.peer_comparison_insight) {
+    document.getElementById('peerInsight').innerText = data.peer_comparison_insight;
+    document.getElementById('insightBox').style.display = 'block';
+}
+
+// ---- Skills Gap ----
+const priorityLevels = ['critical','critical','high','high','medium','medium','medium'];
+const skillPcts = [88, 75, 62, 55, 48, 42, 35];
+const skillColors = ['#fb7185','#fb923c','#fbbf24','#a78bfa','#60a5fa','#34d399','#6366f1'];
+
+const sl = document.getElementById('skillsList');
+sl.innerHTML = '';
+if (data.skills_gap) {
+    data.skills_gap.forEach((s, i) => {
+        const prio = priorityLevels[i % priorityLevels.length];
+        const pct = skillPcts[i % skillPcts.length];
+        const color = skillColors[i % skillColors.length];
+        sl.innerHTML += `
+        <div class="skill-item">
+            <div class="skill-row">
+                <span class="skill-name">${s}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="skill-priority priority-${prio}">${prio}</span>
+                    <span class="skill-pct">${pct}% market demand</span>
+                </div>
+            </div>
+            <div class="skill-bar-track">
+                <div class="skill-bar-fill" style="background:${color};width:${pct}%" data-width="${pct/100}"></div>
+            </div>
+        </div>`;
+    });
+    setTimeout(() => {
+        document.querySelectorAll('.skill-bar-fill').forEach(el => {
+            el.style.transform = `scaleX(1)`;
+        });
+    }, 500);
+}
+
+// ---- Roadmap ----
+const rl = document.getElementById('roadmapList');
+rl.innerHTML = '';
+const roadmapTags = ['SHORT-TERM (0–3 MO)', 'SHORT-TERM (1–3 MO)', 'MID-TERM (3–6 MO)', 'MID-TERM (3–6 MO)', 'LONG-TERM (6–12 MO)'];
+if (data.career_roadmap) {
+    data.career_roadmap.forEach((r, i) => {
+        rl.innerHTML += `
+        <div class="roadmap-item">
+            <div class="roadmap-node">${String(i+1).padStart(2,'0')}</div>
+            <div class="roadmap-content">
+                <div class="roadmap-text">${r}</div>
+                <div class="roadmap-tag">${roadmapTags[i % roadmapTags.length]}</div>
+            </div>
+        </div>`;
+    });
+}
+
+// ---- ApexCharts ----
+const chartDefaults = {
+    chart: { toolbar: { show: false }, fontFamily: "'Space Mono', monospace", foreColor: '#5a5a7a', background: 'transparent' },
+    theme: { mode: 'dark' },
+    grid: { borderColor: 'rgba(255,255,255,0.04)', strokeDashArray: 4 },
+    tooltip: { theme: 'dark' }
+};
+
+// Market Gap - Radial comparison bars
+new ApexCharts(document.querySelector("#marketGapChart"), {
+    ...chartDefaults,
+    chart: { ...chartDefaults.chart, type: 'bar', height: 220 },
+    series: [
+        { name: 'Market Job Availability', data: [availability, availability * 0.85, availability * 1.1] },
+        { name: 'Your Employability Match', data: [matchVal, matchVal * 0.9, matchVal * 1.05] }
+    ],
+    plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 4, borderRadiusApplication: 'end' } },
+    colors: ['rgba(99,102,241,0.8)', 'var(--acid)'],
+    xaxis: { categories: ['Current Quarter', 'Last Quarter', 'Market Avg'], labels: { style: { fontSize: '10px' } } },
+    yaxis: { labels: { formatter: v => v + '%', style: { fontSize: '10px' } } },
+    legend: { position: 'top', fontSize: '10px', markers: { radius: 2 } },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 2, colors: ['transparent'] },
+}).render();
+
+// Provincial - Horizontal bars
+if (data.regional_trends && data.regional_trends.length > 0) {
+    new ApexCharts(document.querySelector("#provinceChart"), {
+        ...chartDefaults,
+        chart: { ...chartDefaults.chart, type: 'bar', height: 260 },
+        series: [{ name: 'Opportunity Index', data: data.regional_trends.map(r => r.opportunity_index || 0) }],
+        plotOptions: { bar: { horizontal: true, borderRadius: 4, borderRadiusApplication: 'end', barHeight: '55%',
+            dataLabels: { position: 'bottom' }
+        }},
+        colors: ['var(--plasma)'],
+        xaxis: { categories: data.regional_trends.map(r => r.province || 'Unknown'), labels: { style: { fontSize: '9px' } } },
+        yaxis: { labels: { style: { fontSize: '9px' } } },
+        dataLabels: { enabled: true, style: { fontSize: '9px', colors: ['#080810'] }, formatter: v => v + '%' },
+    }).render();
+}
+
+// Radar chart - peer comparison
+const radarCategories = ['Education', 'Tech Skills', 'Certifications', 'Experience', 'Salary Align', 'Market Fit'];
+const userRadar = [
+    Math.min(score, 100),
+    Math.min(matchVal + 10, 100),
+    Math.min(peerRate - 5, 100),
+    Math.min(score - 8, 100),
+    Math.min(matchVal + 5, 100),
+    Math.min(score - 3, 100)
+].map(v => Math.max(v, 20));
+const peerRadar = userRadar.map(v => Math.min(v + 12, 100));
+
+new ApexCharts(document.querySelector("#radarChart"), {
+    ...chartDefaults,
+    chart: { ...chartDefaults.chart, type: 'radar', height: 280, dropShadow: { enabled: true, blur: 4, left: 1, top: 1, opacity: 0.1 } },
+    series: [
+        { name: 'Your Profile', data: userRadar },
+        { name: 'Placed Peers', data: peerRadar }
+    ],
+    colors: ['var(--acid)', 'rgba(0,245,212,0.6)'],
+    stroke: { width: 2 },
+    fill: { opacity: 0.1 },
+    markers: { size: 4 },
+    xaxis: { categories: radarCategories, labels: { style: { fontSize: '9px' } } },
+    yaxis: { show: false, max: 100 },
+    legend: { fontSize: '10px', position: 'bottom' },
+    dataLabels: { enabled: false },
+    plotOptions: { radar: { polygons: { strokeColors: 'rgba(255,255,255,0.05)', connectorColors: 'rgba(255,255,255,0.03)', fill: { colors: ['transparent'] } } } }
+}).render();
+
+// Trend chart - 12 month projection
+const months = ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'];
+const baseScore = score;
+const trendData = months.map((_, i) => Math.min(100, Math.round(baseScore + i * 1.8 + (Math.random() * 4 - 2))));
+const marketData = months.map((_, i) => Math.round((availability + matchVal)/2 + i * 0.8 + (Math.random() * 3 - 1.5)));
+
+new ApexCharts(document.querySelector("#trendChart"), {
+    ...chartDefaults,
+    chart: { ...chartDefaults.chart, type: 'area', height: 200 },
+    series: [
+        { name: 'Your Projected Score', data: trendData },
+        { name: 'Market Demand Index', data: marketData }
+    ],
+    colors: ['var(--acid)', 'var(--plasma)'],
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1, type: 'vertical',
+            colorStops: [
+                [{ offset: 0, color: 'var(--acid)', opacity: 0.2 }, { offset: 100, color: 'var(--acid)', opacity: 0 }],
+                [{ offset: 0, color: 'var(--plasma)', opacity: 0.15 }, { offset: 100, color: 'var(--plasma)', opacity: 0 }]
+            ]
+        }
+    },
+    xaxis: { categories: months, labels: { style: { fontSize: '10px' } } },
+    yaxis: { labels: { formatter: v => v + '%', style: { fontSize: '10px' } }, min: 0, max: 100 },
+    dataLabels: { enabled: false },
+    legend: { fontSize: '10px', position: 'top' },
+    markers: { size: 0, hover: { size: 5 } },
+    annotations: {
+        xaxis: [{ x: 'Dec', borderColor: 'rgba(255,255,255,0.1)', label: { text: 'NOW', style: { background: 'rgba(255,255,255,0.05)', color: '#5a5a7a', fontSize: '9px' } } }]
+    }
+}).render();
+
+// Animate KPI numbers
+function animateVal(elId, target, suffix='%', duration=1200) {
+    const el = document.getElementById(elId);
+    const start = 0; const step = target / (duration / 16);
+    let cur = 0;
+    const t = setInterval(() => {
+        cur = Math.min(cur + step, target);
+        el.innerText = Math.floor(cur) + suffix;
+        if (cur >= target) { el.innerText = target + suffix; clearInterval(t); }
+    }, 16);
+}
+setTimeout(() => {
+    animateVal('scoreText', score);
+    animateVal('peerRate', peerRate);
+    animateVal('matchText', matchVal);
+}, 400);
+</script>
+{% endblock %}
