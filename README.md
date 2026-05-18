@@ -39,7 +39,7 @@ Cognitive Engine: Llama-3.3-70b-versatile (Structured JSON Output Model)
 Ensure you have Python installed, then run:
 
 # 1. Clone the repository
-git clone [https://github.com/your-username/employai-quantum-analytics.git](https://github.com/your-username/employai-quantum-analytics.git)
+git clone [https://github.com/Serero-Codes/employai-quantum-analytics.git](https://github.com/your-username/employai-quantum-analytics.git)
 cd employai-quantum-analytics
 
 # 2. Build and boot the virtual environment
